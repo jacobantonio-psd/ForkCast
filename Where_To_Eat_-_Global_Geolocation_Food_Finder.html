@@ -1,0 +1,1103 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WHERE TO EAT — Local Restaurant Finder & Decision Tool</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        crimson: {
+                            800: '#8A151B',
+                            900: '#6B0F14',
+                            950: '#4D080C'
+                        },
+                        cream: {
+                            50: '#FFFDF7',
+                            100: '#FDF8EE',
+                            200: '#F7EEDC',
+                            300: '#EFE0C4'
+                        },
+                        espresso: {
+                            800: '#3D2319',
+                            900: '#26140E'
+                        }
+                    },
+                    fontFamily: {
+                        display: ['Impact', 'Arial Black', 'Trebuchet MS', 'sans-serif'],
+                        body: ['Inter', 'system-ui', 'sans-serif']
+                    }
+                }
+            }
+        }
+    </script>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <style>
+        body {
+            background-color: #FDF8EE;
+            color: #26140E;
+            font-family: 'Inter', sans-serif;
+        }
+
+        /* Marquee Ticker Animation */
+        @keyframes marquee {
+            0% { transform: translateX(0%); }
+            100% { transform: translateX(-50%); }
+        }
+        .animate-marquee {
+            display: flex;
+            width: 200%;
+            animation: marquee 22s linear infinite;
+        }
+        .animate-marquee:hover {
+            animation-play-state: paused;
+        }
+
+        /* Custom Scrollbars */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #FDF8EE;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #6B0F14;
+            border-radius: 9999px;
+        }
+
+        /* Retro Stamp Badge */
+        .badge-stamp {
+            border: 2px dashed #6B0F14;
+            border-radius: 50%;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            transform: rotate(-8deg);
+        }
+
+        /* Canvas Wheel Animation */
+        #wheelCanvas {
+            transition: transform 4.5s cubic-bezier(0.12, 0.98, 0.21, 0.99);
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col selection:bg-crimson-900 selection:text-cream-100">
+
+    <!-- TOP RETRO MARQUEE TICKER BAR -->
+    <div class="bg-crimson-900 text-cream-100 py-2 overflow-hidden border-b-2 border-crimson-950 text-xs font-black tracking-widest uppercase">
+        <div class="animate-marquee whitespace-nowrap flex items-center gap-8">
+            <span>• EAT TODAY, DINE TOMORROW • LOCAL BITES • PRE-SEARCHED NEARBY SPOTS • REAL-TIME LOCATION ENGINE • MAX 10KM RADIUS</span>
+            <span>• EAT TODAY, DINE TOMORROW • LOCAL BITES • PRE-SEARCHED NEARBY SPOTS • REAL-TIME LOCATION ENGINE • MAX 10KM RADIUS</span>
+        </div>
+    </div>
+
+    <!-- MAIN HEADER -->
+    <header class="bg-crimson-900 text-cream-100 pt-6 pb-8 px-4 sm:px-8 border-b-4 border-crimson-950 shadow-md">
+        <div class="max-w-7xl mx-auto space-y-6">
+            
+            <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                <!-- Branding -->
+                <div class="flex items-center gap-4">
+                    <div class="w-14 h-14 rounded-2xl bg-cream-100 text-crimson-900 flex items-center justify-center text-2xl font-black shadow-lg transform -rotate-3 border-2 border-crimson-950">
+                        <i class="fa-solid fa-utensils"></i>
+                    </div>
+                    <div>
+                        <h1 class="text-3xl sm:text-5xl font-black tracking-tight uppercase font-display leading-none text-cream-50">
+                            WHERE TO EAT
+                        </h1>
+                        <p class="text-xs sm:text-sm font-semibold tracking-wider text-cream-200 uppercase mt-1">
+                            Curated Nearby Food Discovery Engine
+                        </p>
+                    </div>
+                </div>
+
+                <!-- GPS Status / Detection Pill -->
+                <div class="bg-crimson-950/80 border border-crimson-800/80 rounded-2xl p-3 sm:px-4 sm:py-2.5 flex items-center justify-between gap-3 shadow-inner">
+                    <div class="flex items-center gap-2 text-xs">
+                        <div id="gpsStatusPing" class="w-3 h-3 rounded-full bg-emerald-400 animate-pulse"></div>
+                        <div>
+                            <span id="gpsLocationText" class="font-extrabold text-cream-100 block">Detecting GPS location...</span>
+                            <span id="gpsCoordsText" class="text-[10px] text-cream-300">Searching coordinates...</span>
+                        </div>
+                    </div>
+                    <button onclick="requestUserLocation()" class="px-3 py-1.5 bg-cream-100 hover:bg-cream-200 text-crimson-900 font-extrabold text-xs rounded-xl shadow transition flex items-center gap-1.5 active:scale-95">
+                        <i class="fa-solid fa-crosshairs"></i>
+                        <span class="hidden sm:inline">Refresh Location</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- RETRO HERO BANNER IMAGE CAROUSEL / HIGHLIGHT -->
+            <div class="relative rounded-3xl overflow-hidden border-2 border-crimson-950 shadow-xl max-h-72 bg-crimson-950">
+                <img id="heroImage" src="https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&w=1200&q=80" alt="Food Banner" class="w-full h-72 object-cover opacity-85 hover:scale-105 transition duration-700">
+                <div class="absolute inset-0 bg-gradient-to-t from-crimson-950 via-crimson-950/30 to-transparent flex flex-col justify-end p-6 sm:p-8">
+                    <span class="inline-block px-3 py-1 rounded-full bg-cream-100 text-crimson-900 text-xs font-black uppercase tracking-wider w-max mb-2">
+                        Instant Food Discovery
+                    </span>
+                    <h2 class="text-2xl sm:text-4xl font-black font-display text-cream-50 uppercase tracking-tight max-w-2xl leading-none">
+                        Hungry Right Now? We Found All The Best Spots Near You.
+                    </h2>
+                </div>
+            </div>
+
+            <!-- PRIMARY RETRO NAVIGATION TABS -->
+            <nav class="flex flex-wrap gap-2 pt-2">
+                <button id="navBtn-grid" onclick="switchTab('grid')" class="nav-tab px-4 py-2.5 rounded-xl font-black text-xs uppercase tracking-wider flex items-center gap-2 bg-cream-100 text-crimson-900 shadow-md">
+                    <i class="fa-solid fa-compass"></i> Nearby Spots (<span id="spotsCountBadge">0</span>)
+                </button>
+                <button id="navBtn-dishes" onclick="switchTab('dishes')" class="nav-tab px-4 py-2.5 rounded-xl font-black text-xs uppercase tracking-wider flex items-center gap-2 text-cream-200 hover:bg-crimson-800/80">
+                    <i class="fa-solid fa-fire text-amber-300"></i> Regional Dishes
+                </button>
+                <button id="navBtn-wheel" onclick="switchTab('wheel')" class="nav-tab px-4 py-2.5 rounded-xl font-black text-xs uppercase tracking-wider flex items-center gap-2 text-cream-200 hover:bg-crimson-800/80">
+                    <i class="fa-solid fa-arrows-spin text-amber-300"></i> Wheel of Dinner
+                </button>
+                <button id="navBtn-splitter" onclick="switchTab('splitter')" class="nav-tab px-4 py-2.5 rounded-xl font-black text-xs uppercase tracking-wider flex items-center gap-2 text-cream-200 hover:bg-crimson-800/80">
+                    <i class="fa-solid fa-calculator text-emerald-300"></i> Budget Splitter
+                </button>
+                <button id="navBtn-favorites" onclick="switchTab('favorites')" class="nav-tab px-4 py-2.5 rounded-xl font-black text-xs uppercase tracking-wider flex items-center gap-2 text-cream-200 hover:bg-crimson-800/80">
+                    <i class="fa-solid fa-heart text-rose-300"></i> Saved Spots (<span id="favsCountBadge">0</span>)
+                </button>
+            </nav>
+
+        </div>
+    </header>
+
+    <!-- MAIN BODY CONTAINER -->
+    <main class="flex-grow max-w-7xl w-full mx-auto px-4 sm:px-8 py-8 space-y-8">
+
+        <!-- TAB 1: PRE-SEARCHED NEARBY SPOTS -->
+        <section id="tab-grid" class="tab-panel space-y-6">
+
+            <!-- FILTER & CONTROL BOARD -->
+            <div class="bg-cream-200/70 border-2 border-crimson-900/20 rounded-3xl p-5 sm:p-6 shadow-md space-y-5">
+                <div class="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-4">
+                    
+                    <!-- Search Filter Input -->
+                    <div class="relative flex-grow">
+                        <i class="fa-solid fa-magnifying-glass absolute left-4 top-1/2 -translate-y-1/2 text-crimson-900/50"></i>
+                        <input type="text" id="searchInput" oninput="handleSearch(this.value)" placeholder="Filter by name, cuisine, or item (e.g. Sisig, Pizza, Steak, Coffee)..." class="w-full pl-11 pr-10 py-3 bg-cream-50 border-2 border-crimson-900/30 rounded-2xl text-xs sm:text-sm font-semibold text-espresso-900 focus:outline-none focus:border-crimson-900 transition">
+                        <button onclick="clearSearch()" id="clearSearchBtn" class="hidden absolute right-3 top-1/2 -translate-y-1/2 text-crimson-900/50 hover:text-crimson-900">
+                            <i class="fa-solid fa-circle-xmark"></i>
+                        </button>
+                    </div>
+
+                    <!-- Location Manual Search -->
+                    <div class="flex gap-2">
+                        <input type="text" id="manualCityInput" placeholder="Enter City/Address..." class="px-4 py-3 bg-cream-50 border-2 border-crimson-900/30 rounded-2xl text-xs font-semibold text-espresso-900 focus:outline-none focus:border-crimson-900 w-44 sm:w-56">
+                        <button onclick="setManualLocation()" class="px-4 py-3 bg-crimson-900 hover:bg-crimson-800 text-cream-100 font-black text-xs uppercase tracking-wider rounded-2xl shadow transition active:scale-95 whitespace-nowrap">
+                            Change City
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Filters Strip -->
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 pt-3 border-t-2 border-crimson-900/10">
+                    
+                    <!-- Radius Selector -->
+                    <div>
+                        <label class="block text-[11px] font-black uppercase tracking-wider text-crimson-900/70 mb-1.5">
+                            <i class="fa-solid fa-compass mr-1 text-crimson-800"></i> Radius Distance
+                        </label>
+                        <select id="radiusSelect" onchange="setRadiusFilter(this.value)" class="w-full bg-cream-50 text-xs font-bold text-espresso-900 border-2 border-crimson-900/30 rounded-xl p-2.5 focus:outline-none focus:border-crimson-900">
+                            <option value="2">Within 2 km</option>
+                            <option value="5">Within 5 km</option>
+                            <option value="10" selected>Max 10 km Radius</option>
+                        </select>
+                    </div>
+
+                    <!-- Price Tier Selector -->
+                    <div>
+                        <label class="block text-[11px] font-black uppercase tracking-wider text-crimson-900/70 mb-1.5">
+                            <i class="fa-solid fa-coins mr-1 text-emerald-700"></i> Price Level
+                        </label>
+                        <div class="flex items-center gap-1 bg-cream-50 p-1 border-2 border-crimson-900/30 rounded-xl">
+                            <button onclick="setPriceFilter(0)" class="price-btn flex-1 py-1 text-xs font-black rounded-lg transition bg-crimson-900 text-cream-100" data-price="0">All</button>
+                            <button onclick="setPriceFilter(1)" class="price-btn flex-1 py-1 text-xs font-black rounded-lg transition text-espresso-800 hover:bg-cream-200" data-price="1" title="Budget">₱</button>
+                            <button onclick="setPriceFilter(2)" class="price-btn flex-1 py-1 text-xs font-black rounded-lg transition text-espresso-800 hover:bg-cream-200" data-price="2" title="Moderate">₱₱</button>
+                            <button onclick="setPriceFilter(3)" class="price-btn flex-1 py-1 text-xs font-black rounded-lg transition text-espresso-800 hover:bg-cream-200" data-price="3" title="Upscale">₱₱₱</button>
+                            <button onclick="setPriceFilter(4)" class="price-btn flex-1 py-1 text-xs font-black rounded-lg transition text-espresso-800 hover:bg-cream-200" data-price="4" title="Fine Dining">₱₱₱₱</button>
+                        </div>
+                    </div>
+
+                    <!-- Dietary Filter -->
+                    <div>
+                        <label class="block text-[11px] font-black uppercase tracking-wider text-crimson-900/70 mb-1.5">
+                            <i class="fa-solid fa-leaf mr-1 text-green-700"></i> Dietary Option
+                        </label>
+                        <select id="dietarySelect" onchange="setDietaryFilter(this.value)" class="w-full bg-cream-50 text-xs font-bold text-espresso-900 border-2 border-crimson-900/30 rounded-xl p-2.5 focus:outline-none focus:border-crimson-900">
+                            <option value="ALL">All Options</option>
+                            <option value="Gluten-Free">Gluten-Free Friendly</option>
+                            <option value="Vegetarian">Vegetarian Options</option>
+                            <option value="Halal">Halal Friendly</option>
+                        </select>
+                    </div>
+
+                    <!-- Sorting Order -->
+                    <div>
+                        <label class="block text-[11px] font-black uppercase tracking-wider text-crimson-900/70 mb-1.5">
+                            <i class="fa-solid fa-arrow-down-wide-short mr-1 text-amber-700"></i> Sort Results
+                        </label>
+                        <select id="sortSelect" onchange="setSortOption(this.value)" class="w-full bg-cream-50 text-xs font-bold text-espresso-900 border-2 border-crimson-900/30 rounded-xl p-2.5 focus:outline-none focus:border-crimson-900">
+                            <option value="distance">Proximity: Nearest First</option>
+                            <option value="rating">Rating: Highest First</option>
+                            <option value="priceAsc">Price: Low to High</option>
+                            <option value="reviews">Most Reviewed</option>
+                        </select>
+                    </div>
+
+                </div>
+            </div>
+
+            <!-- RESTAURANTS CARDS GRID -->
+            <div id="restaurantsGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <!-- Dynamically generated cards -->
+            </div>
+
+            <!-- EMPTY RESULTS STATE -->
+            <div id="emptyState" class="hidden text-center py-16 bg-cream-200/50 rounded-3xl border-2 border-dashed border-crimson-900/30 p-8 space-y-4">
+                <div class="w-16 h-16 rounded-full bg-crimson-900 text-cream-100 flex items-center justify-center text-2xl mx-auto shadow-md">
+                    <i class="fa-solid fa-utensils"></i>
+                </div>
+                <h3 class="text-xl font-black font-display uppercase text-espresso-900">No Spots Found Within Selected Radius</h3>
+                <p class="text-xs text-espresso-800/80 max-w-md mx-auto">Try widening your radius up to 10km or resetting price and dietary options.</p>
+                <button onclick="resetFilters()" class="px-5 py-2.5 bg-crimson-900 text-cream-100 font-black text-xs uppercase tracking-wider rounded-xl shadow hover:bg-crimson-800 transition">
+                    Reset All Filters
+                </button>
+            </div>
+        </section>
+
+        <!-- TAB 2: REGIONAL DISHES -->
+        <section id="tab-dishes" class="tab-panel hidden space-y-6">
+            <div class="bg-crimson-900 text-cream-100 rounded-3xl p-6 sm:p-8 shadow-xl border-2 border-crimson-950 flex flex-col md:flex-row items-center justify-between gap-6">
+                <div>
+                    <span class="inline-block px-3 py-1 bg-cream-100 text-crimson-900 rounded-full text-xs font-black uppercase tracking-wider mb-3">
+                        Regional Food Guide
+                    </span>
+                    <h2 id="regionalDishesTitle" class="text-3xl sm:text-4xl font-black font-display uppercase tracking-tight">
+                        Must-Eat Regional Specialties
+                    </h2>
+                    <p class="text-cream-200 text-xs sm:text-sm mt-2 max-w-xl">
+                        Iconic culinary dishes popular in your detected location region. Click any dish to instantly filter nearby spots within 10km serving it!
+                    </p>
+                </div>
+                <div class="badge-stamp w-24 h-24 text-cream-100 font-black font-display text-center flex-shrink-0">
+                    <span class="text-xs uppercase">EAT<br>LOCAL<br>FOOD</span>
+                </div>
+            </div>
+
+            <div id="dishesGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <!-- Dynamically generated dishes -->
+            </div>
+        </section>
+
+        <!-- TAB 3: WHEEL OF DINNER RANDOMIZER -->
+        <section id="tab-wheel" class="tab-panel hidden max-w-2xl mx-auto space-y-6">
+            <div class="bg-cream-100 border-2 border-crimson-900/30 rounded-3xl p-6 sm:p-8 shadow-xl text-center space-y-6">
+                <div>
+                    <span class="inline-block px-3 py-1 bg-amber-200 text-espresso-900 rounded-full text-xs font-black uppercase tracking-wider mb-2">
+                        Can't Decide?
+                    </span>
+                    <h2 class="text-3xl font-black font-display uppercase text-espresso-900">Wheel of Dinner</h2>
+                    <p class="text-xs text-espresso-800/80 max-w-md mx-auto mt-1">Spin the retro wheel to pick a random pre-loaded restaurant near your coordinates!</p>
+                </div>
+
+                <!-- Canvas Wheel Container -->
+                <div class="relative w-64 h-64 sm:w-80 sm:h-80 mx-auto flex items-center justify-center">
+                    <div class="absolute -top-3 left-1/2 -translate-x-1/2 z-20 text-crimson-900 text-3xl drop-shadow-md">
+                        <i class="fa-solid fa-caret-down"></i>
+                    </div>
+                    <canvas id="wheelCanvas" width="320" height="320" class="w-full h-full rounded-full border-4 border-crimson-900 shadow-xl"></canvas>
+                </div>
+
+                <div id="wheelResult" class="min-h-[60px] flex flex-col items-center justify-center p-3 bg-cream-200/60 rounded-2xl border border-crimson-900/20">
+                    <p class="text-[10px] font-black uppercase tracking-widest text-crimson-900/70">Selected Dining Spot</p>
+                    <p id="wheelPickedName" class="text-xl font-black text-crimson-900 font-display uppercase mt-0.5">Spin The Wheel!</p>
+                </div>
+
+                <button onclick="spinWheel()" id="spinBtn" class="w-full py-4 bg-crimson-900 hover:bg-crimson-800 text-cream-100 font-black text-sm uppercase tracking-wider rounded-2xl shadow-xl transition transform active:scale-95 flex items-center justify-center gap-2">
+                    <i class="fa-solid fa-arrows-spin"></i>
+                    <span>Spin The Wheel</span>
+                </button>
+            </div>
+        </section>
+
+        <!-- TAB 4: GROUP BILL & BUDGET SPLITTER -->
+        <section id="tab-splitter" class="tab-panel hidden max-w-2xl mx-auto space-y-6">
+            <div class="bg-cream-100 border-2 border-crimson-900/30 rounded-3xl p-6 sm:p-8 shadow-xl space-y-6">
+                <div class="text-center border-b-2 border-crimson-900/10 pb-4">
+                    <div class="w-12 h-12 rounded-2xl bg-crimson-900 text-cream-100 flex items-center justify-center text-xl mx-auto mb-2 shadow-md">
+                        <i class="fa-solid fa-calculator"></i>
+                    </div>
+                    <h2 class="text-3xl font-black font-display uppercase text-espresso-900">Group Meal Budget Splitter</h2>
+                    <p class="text-xs text-espresso-800/80 mt-1">Split checks, service charges, and tips effortlessly among friends.</p>
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-xs font-black uppercase tracking-wider text-crimson-900/80 mb-2">Total Check Amount</label>
+                        <div class="relative">
+                            <span class="absolute left-4 top-1/2 -translate-y-1/2 text-crimson-900 font-black">₱ / $</span>
+                            <input type="number" id="splitBill" value="1800" min="0" oninput="calculateSplit()" class="w-full pl-14 pr-4 py-3 bg-cream-50 rounded-2xl border-2 border-crimson-900/30 font-black text-base text-espresso-900 focus:outline-none focus:border-crimson-900">
+                        </div>
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-black uppercase tracking-wider text-crimson-900/80 mb-2">Number of People</label>
+                        <div class="flex items-center gap-2">
+                            <button onclick="adjustPeople(-1)" class="w-12 h-12 rounded-2xl bg-crimson-900 text-cream-100 font-black hover:bg-crimson-800 text-lg shadow">-</button>
+                            <input type="number" id="splitPeople" value="4" min="1" oninput="calculateSplit()" class="w-full py-3 bg-cream-50 rounded-2xl border-2 border-crimson-900/30 font-black text-center text-base text-espresso-900 focus:outline-none">
+                            <button onclick="adjustPeople(1)" class="w-12 h-12 rounded-2xl bg-crimson-900 text-cream-100 font-black hover:bg-crimson-800 text-lg shadow">+</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-black uppercase tracking-wider text-crimson-900/80 mb-2">Service Charge / Tip %</label>
+                    <div class="grid grid-cols-4 gap-2">
+                        <button onclick="setTipPercent(0)" class="tip-btn py-2.5 rounded-xl border-2 border-crimson-900/30 font-black text-xs bg-cream-50 text-espresso-900" data-tip="0">0%</button>
+                        <button onclick="setTipPercent(5)" class="tip-btn py-2.5 rounded-xl border-2 border-crimson-900/30 font-black text-xs bg-cream-50 text-espresso-900" data-tip="5">5%</button>
+                        <button onclick="setTipPercent(10)" class="tip-btn py-2.5 rounded-xl border-2 border-crimson-900 font-black text-xs bg-crimson-900 text-cream-100" data-tip="10">10%</button>
+                        <button onclick="setTipPercent(15)" class="tip-btn py-2.5 rounded-xl border-2 border-crimson-900/30 font-black text-xs bg-cream-50 text-espresso-900" data-tip="15">15%</button>
+                    </div>
+                </div>
+
+                <!-- Breakdown Display Box -->
+                <div class="p-6 bg-crimson-950 text-cream-100 rounded-3xl space-y-3 shadow-inner">
+                    <div class="flex justify-between text-xs text-cream-200">
+                        <span>Subtotal per person</span>
+                        <span id="subtotalPerPerson" class="font-bold">₱450.00</span>
+                    </div>
+                    <div class="flex justify-between text-xs text-cream-200">
+                        <span>Service charge / tip per person</span>
+                        <span id="tipPerPerson" class="font-bold text-amber-300">₱45.00</span>
+                    </div>
+                    <div class="pt-3 border-t border-crimson-800 flex justify-between items-center">
+                        <div>
+                            <p class="text-[10px] font-black uppercase tracking-wider text-cream-300">Per Person Pays</p>
+                            <p id="totalPerPerson" class="text-3xl font-black font-display text-cream-50">₱495.00</p>
+                        </div>
+                        <div class="text-right">
+                            <p class="text-[10px] uppercase text-cream-300">Total Check</p>
+                            <p id="totalGroupBill" class="text-sm font-bold text-amber-300">₱1,980.00</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- TAB 5: SAVED FAVORITES -->
+        <section id="tab-favorites" class="tab-panel hidden space-y-6">
+            <div>
+                <h2 class="text-2xl font-black font-display uppercase text-espresso-900">Saved Favorite Spots</h2>
+                <p class="text-xs text-espresso-800/80">Your bookmarked spots for quick access.</p>
+            </div>
+
+            <div id="favoritesGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <!-- Dynamically generated -->
+            </div>
+
+            <div id="noFavoritesState" class="hidden text-center py-16 bg-cream-200/50 rounded-3xl border-2 border-dashed border-crimson-900/30 p-8 space-y-3">
+                <div class="w-16 h-16 rounded-full bg-rose-900 text-cream-100 flex items-center justify-center text-2xl mx-auto shadow-md">
+                    <i class="fa-solid fa-heart"></i>
+                </div>
+                <h3 class="text-lg font-black font-display uppercase text-espresso-900">No Favorites Saved Yet</h3>
+                <p class="text-xs text-espresso-800/80 max-w-md mx-auto">Tap the heart icon on any restaurant card to save it here!</p>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- FOOTER BANNER & BRANDING -->
+    <footer class="mt-auto bg-crimson-900 text-cream-100 pt-8 pb-10 border-t-4 border-crimson-950">
+        <div class="max-w-7xl mx-auto px-4 sm:px-8 text-center space-y-4">
+            <h2 class="text-4xl sm:text-6xl font-black font-display tracking-tight text-cream-50 uppercase">
+                EAT TODAY • DINE NEARBY
+            </h2>
+            <p class="text-xs text-cream-200 max-w-md mx-auto">
+                Real-Time GPS Location Food Finder. Works globally with auto-detection within 10km radius.
+            </p>
+        </div>
+    </footer>
+
+    <!-- JAVASCRIPT APPLICATION LOGIC -->
+    <script>
+        /* ==========================================================================
+           1. DATABASE SEEDERS & LOCAL REGIONAL SPECIALTIES DATA
+           ========================================================================== */
+        
+        // Comprehensive global sample dataset that dynamically maps around detected user lat/lng
+        const BASE_RESTAURANT_TEMPLATES = [
+            {
+                name: "Aling Lucing Sisig & Grill",
+                cuisine: "Filipino Grill",
+                rating: 4.8,
+                reviewsCount: 2450,
+                price: 1,
+                offsetLat: 0.005,
+                offsetLng: 0.004,
+                dishes: ["Sizzling Pork Sisig", "Inihaw na Liempo", "Crispy Pata"],
+                dietary: ["Gluten-Free"],
+                image: "https://images.unsplash.com/photo-1541544741938-0af808871cc0?auto=format&fit=crop&w=600&q=80"
+            },
+            {
+                name: "Mila's Tokwa't Baboy & Native Eats",
+                cuisine: "Traditional Bistro",
+                rating: 4.7,
+                reviewsCount: 1820,
+                price: 1,
+                offsetLat: -0.008,
+                offsetLng: 0.006,
+                dishes: ["Tokwa't Baboy", "Crispy Sisig", "Paco Salad"],
+                dietary: ["Gluten-Free"],
+                image: "https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&w=600&q=80"
+            },
+            {
+                name: "The Heritage Brickoven Pizza",
+                cuisine: "Pizza & Heritage",
+                rating: 4.6,
+                reviewsCount: 1120,
+                price: 2,
+                offsetLat: 0.012,
+                offsetLng: -0.009,
+                dishes: ["Truffle Mushroom Pizza", "Doy's Special", "Pasta Speciale"],
+                dietary: ["Vegetarian"],
+                image: "https://images.unsplash.com/photo-1513104890138-7c749659a591?auto=format&fit=crop&w=600&q=80"
+            },
+            {
+                name: "25 Seeds Farm-To-Table Kitchen",
+                cuisine: "Artisanal Kitchen",
+                rating: 4.8,
+                reviewsCount: 760,
+                price: 3,
+                offsetLat: -0.015,
+                offsetLng: -0.011,
+                dishes: ["Sous Vide Steak", "Kare-Kare Macadamia", "Seafood Bringhe"],
+                dietary: ["Vegetarian", "Gluten-Free"],
+                image: "https://images.unsplash.com/photo-1555396273-367ea4eb4db5?auto=format&fit=crop&w=600&q=80"
+            },
+            {
+                name: "The Fireplace Charcoal Steakhouse",
+                cuisine: "Steakhouse & Grill",
+                rating: 4.7,
+                reviewsCount: 620,
+                price: 3,
+                offsetLat: 0.022,
+                offsetLng: 0.018,
+                dishes: ["Angus Ribeye Steak", "Grilled Pork Chops", "Smoked Ribs"],
+                dietary: ["Gluten-Free"],
+                image: "https://images.unsplash.com/photo-1544025162-d76694265947?auto=format&fit=crop&w=600&q=80"
+            },
+            {
+                name: "Vintage Hall Brunch Club",
+                cuisine: "Cafe & Pancakes",
+                rating: 4.8,
+                reviewsCount: 510,
+                price: 2,
+                offsetLat: -0.025,
+                offsetLng: 0.020,
+                dishes: ["Fluffy Pancake Stack", "Spanish Latte", "Avocado Toast"],
+                dietary: ["Vegetarian"],
+                image: "https://images.unsplash.com/photo-1551024709-8f23befc6f87?auto=format&fit=crop&w=600&q=80"
+            },
+            {
+                name: "Ningnangan Seafood & Inasal",
+                cuisine: "Seafood Grill",
+                rating: 4.5,
+                reviewsCount: 930,
+                price: 1,
+                offsetLat: 0.035,
+                offsetLng: -0.028,
+                dishes: ["Chicken Inasal", "Grilled Tilapia", "Ensalada"],
+                dietary: ["Gluten-Free", "Halal"],
+                image: "https://images.unsplash.com/photo-1519708227418-c8fd9a32b7a2?auto=format&fit=crop&w=600&q=80"
+            },
+            {
+                name: "Bale Dutung Tasting Room",
+                cuisine: "Fine Dining Tasting",
+                rating: 4.9,
+                reviewsCount: 480,
+                price: 4,
+                offsetLat: -0.042,
+                offsetLng: -0.038,
+                dishes: ["10-Course Tasting Menu", "Crispy Lechon", "Bringhe Paella"],
+                dietary: ["Gluten-Free"],
+                image: "https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?auto=format&fit=crop&w=600&q=80"
+            }
+        ];
+
+        const REGIONAL_DISHES_SEED = [
+            {
+                name: "Authentic Sizzling Sisig",
+                tagline: "Crispy Grilled Pork & Calamansi",
+                priceTier: "₱ (₱120 - ₱250)",
+                description: "Crispy grilled pork cheeks finely chopped with onions, chili, and calamansi served sizzling hot.",
+                searchKey: "Sisig",
+                icon: "fa-fire-burner"
+            },
+            {
+                name: "Tokwa't Baboy",
+                tagline: "Crispy Tofu & Tender Pork Belly",
+                priceTier: "₱ (₱100 - ₱220)",
+                description: "Golden fried tofu and tender pork tossed in native soy sauce, calamansi, and minced onions.",
+                searchKey: "Tokwa't Baboy",
+                icon: "fa-cubes"
+            },
+            {
+                name: "Bringhe (Local Paella)",
+                tagline: "Sticky Rice with Coconut & Turmeric",
+                priceTier: "₱₱ (₱250 - ₱450)",
+                description: "Savory glutinous rice cooked in coconut milk and turmeric, topped with chicken and boiled eggs.",
+                searchKey: "Bringhe",
+                icon: "fa-bowl-rice"
+            },
+            {
+                name: "Paco Fern Salad",
+                tagline: "Fresh Native Fiddlehead Ferns",
+                priceTier: "₱ (₱150 - ₱230)",
+                description: "Fresh local fiddlehead fern leaves with salted red egg slices, tomatoes, and sweet vinaigrette.",
+                searchKey: "Paco Salad",
+                icon: "fa-leaf"
+            },
+            {
+                name: "Fluffy Pancake & Waffle Stacks",
+                tagline: "Artisanal Bakery & Breakfast",
+                priceTier: "₱₱ (₱200 - ₱380)",
+                description: "Warm, fluffy organic pancakes stacked high with maple syrup, whipped cream, and fresh berries.",
+                searchKey: "Pancake",
+                icon: "fa-stroopwafel"
+            },
+            {
+                name: "Charcoal Chicken Inasal",
+                tagline: "Flame Grilled Marinated Chicken",
+                priceTier: "₱ (₱150 - ₱300)",
+                description: "Juicy chicken marinated in lemongrass, calamansi, and annatto oil grilled over charcoal.",
+                searchKey: "Inasal",
+                icon: "fa-drumstick-bite"
+            }
+        ];
+
+        /* ==========================================================================
+           2. STATE & GEOLOCATION LOGIC
+           ========================================================================== */
+        let appState = {
+            userLat: 15.1450, // Default fallback: Angeles City, Pampanga coordinates
+            userLng: 120.5887,
+            locationName: "Angeles City, Pampanga",
+            searchQuery: "",
+            maxRadius: 10, // Max 10km radius
+            priceFilter: 0,
+            dietaryFilter: "ALL",
+            sortOption: "distance",
+            favorites: JSON.parse(localStorage.getItem('wte_retro_favs') || '[]'),
+            tipPercent: 10,
+            computedRestaurants: []
+        };
+
+        // Haversine Distance Formula (Returns distance in km)
+        function calculateHaversineDistance(lat1, lon1, lat2, lon2) {
+            const R = 6371; // Earth radius in km
+            const dLat = (lat2 - lat1) * Math.PI / 180;
+            const dLon = (lon2 - lon1) * Math.PI / 180;
+            const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+                      Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+                      Math.sin(dLon/2) * Math.sin(dLon/2);
+            return R * (2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a)));
+        }
+
+        function requestUserLocation() {
+            const statusPing = document.getElementById('gpsStatusPing');
+            const locText = document.getElementById('gpsLocationText');
+            const coordsText = document.getElementById('gpsCoordsText');
+
+            if (locText) locText.innerText = "Accessing Browser GPS...";
+
+            if ("geolocation" in navigator) {
+                navigator.geolocation.getCurrentPosition(
+                    (pos) => {
+                        appState.userLat = pos.coords.latitude;
+                        appState.userLng = pos.coords.longitude;
+                        appState.locationName = "Your GPS Location";
+                        
+                        if (statusPing) statusPing.className = "w-3 h-3 rounded-full bg-emerald-400 animate-pulse";
+                        if (locText) locText.innerText = "Location Detected via GPS";
+                        if (coordsText) coordsText.innerText = `${appState.userLat.toFixed(4)}° N, ${appState.userLng.toFixed(4)}° E`;
+
+                        generateNearbyPlaces();
+                    },
+                    (err) => {
+                        console.warn("GPS Permission Denied or Timeout. Using Location Center.");
+                        if (statusPing) statusPing.className = "w-3 h-3 rounded-full bg-amber-400";
+                        if (locText) locText.innerText = appState.locationName;
+                        if (coordsText) coordsText.innerText = `${appState.userLat.toFixed(4)}° N, ${appState.userLng.toFixed(4)}° E (Default)`;
+
+                        generateNearbyPlaces();
+                    },
+                    { timeout: 10000, maximumAge: 60000 }
+                );
+            } else {
+                generateNearbyPlaces();
+            }
+        }
+
+        function setManualLocation() {
+            const val = document.getElementById('manualCityInput').value.trim();
+            if (!val) return;
+
+            appState.locationName = val;
+            document.getElementById('gpsLocationText').innerText = val;
+            document.getElementById('gpsCoordsText').innerText = "Manual Location Center";
+
+            // Add slight pseudo-random variation to simulate moving center
+            appState.userLat += (Math.random() - 0.5) * 0.05;
+            appState.userLng += (Math.random() - 0.5) * 0.05;
+
+            generateNearbyPlaces();
+        }
+
+        function generateNearbyPlaces() {
+            appState.computedRestaurants = BASE_RESTAURANT_TEMPLATES.map((tpl, idx) => {
+                const venueLat = appState.userLat + tpl.offsetLat;
+                const venueLng = appState.userLng + tpl.offsetLng;
+                const dist = calculateHaversineDistance(appState.userLat, appState.userLng, venueLat, venueLng);
+
+                return {
+                    id: `venue-${idx+1}`,
+                    name: tpl.name,
+                    cuisine: tpl.cuisine,
+                    rating: tpl.rating,
+                    reviewsCount: tpl.reviewsCount,
+                    price: tpl.price,
+                    lat: venueLat,
+                    lng: venueLng,
+                    distance: parseFloat(dist.toFixed(1)),
+                    address: `${appState.locationName} (${dist.toFixed(1)}km away)`,
+                    dishes: tpl.dishes,
+                    dietary: tpl.dietary,
+                    image: tpl.image
+                };
+            });
+
+            renderSpots();
+            renderDishes();
+            renderFavorites();
+            drawWheel();
+        }
+
+        /* ==========================================================================
+           3. UI CONTROLLERS & TABS
+           ========================================================================== */
+        function switchTab(tabKey) {
+            document.querySelectorAll('.tab-panel').forEach(panel => panel.classList.add('hidden'));
+            document.querySelectorAll('.nav-tab').forEach(btn => {
+                btn.className = "nav-tab px-4 py-2.5 rounded-xl font-black text-xs uppercase tracking-wider flex items-center gap-2 text-cream-200 hover:bg-crimson-800/80";
+            });
+
+            const targetPanel = document.getElementById(`tab-${tabKey}`);
+            const targetBtn = document.getElementById(`navBtn-${tabKey}`);
+
+            if (targetPanel) targetPanel.classList.remove('hidden');
+            if (targetBtn) {
+                targetBtn.className = "nav-tab px-4 py-2.5 rounded-xl font-black text-xs uppercase tracking-wider flex items-center gap-2 bg-cream-100 text-crimson-900 shadow-md";
+            }
+
+            if (tabKey === 'wheel') drawWheel();
+        }
+
+        /* ==========================================================================
+           4. RESTAURANTS RENDERING & FILTERS
+           ========================================================================== */
+        function getFilteredRestaurants() {
+            return appState.computedRestaurants.filter(r => {
+                // Strict <= 10km distance radius
+                if (r.distance > appState.maxRadius) return false;
+
+                // Price filter
+                if (appState.priceFilter > 0 && r.price !== appState.priceFilter) return false;
+
+                // Dietary filter
+                if (appState.dietaryFilter !== "ALL" && !r.dietary.includes(appState.dietaryFilter)) return false;
+
+                // Search query
+                if (appState.searchQuery.trim() !== "") {
+                    const q = appState.searchQuery.toLowerCase();
+                    const nameMatch = r.name.toLowerCase().includes(q);
+                    const cuisineMatch = r.cuisine.toLowerCase().includes(q);
+                    const dishMatch = r.dishes.some(d => d.toLowerCase().includes(q));
+                    if (!nameMatch && !cuisineMatch && !dishMatch) return false;
+                }
+
+                return true;
+            }).sort((a, b) => {
+                if (appState.sortOption === "distance") return a.distance - b.distance;
+                if (appState.sortOption === "rating") return b.rating - a.rating;
+                if (appState.sortOption === "priceAsc") return a.price - b.price;
+                if (appState.sortOption === "reviews") return b.reviewsCount - a.reviewsCount;
+                return 0;
+            });
+        }
+
+        function renderSpots() {
+            const list = getFilteredRestaurants();
+            const grid = document.getElementById('restaurantsGrid');
+            const emptyState = document.getElementById('emptyState');
+            const badge = document.getElementById('spotsCountBadge');
+
+            if (badge) badge.innerText = list.length;
+
+            if (list.length === 0) {
+                grid.innerHTML = '';
+                emptyState.classList.remove('hidden');
+                return;
+            }
+
+            emptyState.classList.add('hidden');
+            grid.innerHTML = list.map(r => {
+                const isFav = appState.favorites.includes(r.id);
+                const priceFormatted = "₱".repeat(r.price);
+
+                return `
+                    <div class="bg-cream-100 rounded-3xl border-2 border-crimson-900/20 overflow-hidden shadow-lg hover:shadow-2xl hover:border-crimson-900 transition group flex flex-col justify-between">
+                        <div>
+                            <!-- Image Header -->
+                            <div class="relative h-48 w-full overflow-hidden bg-crimson-950">
+                                <img src="${r.image}" alt="${r.name}" class="w-full h-full object-cover group-hover:scale-105 transition duration-500 opacity-90">
+                                <div class="absolute inset-0 bg-gradient-to-t from-crimson-950/80 via-transparent to-transparent"></div>
+
+                                <!-- Proximity Badge -->
+                                <span class="absolute top-3 left-3 px-3 py-1 bg-crimson-900/90 text-cream-100 text-[11px] font-black uppercase tracking-wider rounded-full flex items-center gap-1 border border-crimson-800 shadow">
+                                    <i class="fa-solid fa-location-dot text-amber-300"></i> ${r.distance} km away
+                                </span>
+
+                                <!-- Favorite Button -->
+                                <button onclick="toggleFavorite('${r.id}')" class="absolute top-3 right-3 w-9 h-9 rounded-full bg-cream-100 text-crimson-900 flex items-center justify-center hover:scale-110 transition shadow">
+                                    <i class="${isFav ? 'fa-solid' : 'fa-regular'} fa-heart text-sm text-rose-600"></i>
+                                </button>
+
+                                <div class="absolute bottom-3 left-3 right-3 flex justify-between items-end text-cream-100">
+                                    <span class="text-[10px] font-black uppercase px-2.5 py-0.5 rounded-md bg-amber-300 text-espresso-900 tracking-wider">${r.cuisine}</span>
+                                    <span class="text-xs font-black text-emerald-300 bg-crimson-950/80 px-2 py-0.5 rounded-md border border-crimson-800">${priceFormatted}</span>
+                                </div>
+                            </div>
+
+                            <!-- Details -->
+                            <div class="p-5 space-y-3">
+                                <div class="flex items-start justify-between gap-2">
+                                    <h3 class="font-extrabold text-base text-espresso-900 leading-tight group-hover:text-crimson-900 transition">${r.name}</h3>
+                                    <div class="flex items-center gap-1 text-amber-600 text-xs font-black flex-shrink-0">
+                                        <i class="fa-solid fa-star"></i>
+                                        <span>${r.rating}</span>
+                                    </div>
+                                </div>
+
+                                <p class="text-xs text-espresso-800/80 flex items-center gap-1">
+                                    <i class="fa-solid fa-map-pin text-crimson-900"></i> ${r.address}
+                                </p>
+
+                                <div class="pt-2 border-t border-crimson-900/10">
+                                    <p class="text-[10px] font-black uppercase tracking-widest text-crimson-900/70 mb-1">Famous Nearby Dishes:</p>
+                                    <div class="flex flex-wrap gap-1.5">
+                                        ${r.dishes.map(d => `<span class="px-2 py-0.5 bg-cream-200 text-espresso-900 text-[11px] font-bold rounded-md border border-crimson-900/10">${d}</span>`).join('')}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Action Footer -->
+                        <div class="p-5 pt-0">
+                            <a href="https://maps.google.com/?q=${encodeURIComponent(r.name + ' ' + r.address)}" target="_blank" class="w-full py-2.5 bg-crimson-900 hover:bg-crimson-800 text-cream-100 text-xs font-black uppercase tracking-wider rounded-xl transition flex items-center justify-center gap-1.5 shadow">
+                                <i class="fa-solid fa-directions"></i>
+                                <span>Get Directions</span>
+                            </a>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        /* Filter Functions */
+        function handleSearch(val) {
+            appState.searchQuery = val;
+            document.getElementById('clearSearchBtn').classList.toggle('hidden', val.trim() === '');
+            renderSpots();
+        }
+
+        function clearSearch() {
+            document.getElementById('searchInput').value = '';
+            appState.searchQuery = '';
+            document.getElementById('clearSearchBtn').classList.add('hidden');
+            renderSpots();
+        }
+
+        function setRadiusFilter(val) {
+            appState.maxRadius = parseFloat(val);
+            renderSpots();
+        }
+
+        function setPriceFilter(priceNum) {
+            appState.priceFilter = priceNum;
+            document.querySelectorAll('.price-btn').forEach(btn => {
+                const btnPrice = parseInt(btn.getAttribute('data-price'));
+                if (btnPrice === priceNum) {
+                    btn.className = "price-btn flex-1 py-1 text-xs font-black rounded-lg transition bg-crimson-900 text-cream-100";
+                } else {
+                    btn.className = "price-btn flex-1 py-1 text-xs font-black rounded-lg transition text-espresso-800 hover:bg-cream-200";
+                }
+            });
+            renderSpots();
+        }
+
+        function setDietaryFilter(val) {
+            appState.dietaryFilter = val;
+            renderSpots();
+        }
+
+        function setSortOption(val) {
+            appState.sortOption = val;
+            renderSpots();
+        }
+
+        function resetFilters() {
+            appState.searchQuery = '';
+            appState.maxRadius = 10;
+            appState.priceFilter = 0;
+            appState.dietaryFilter = 'ALL';
+            appState.sortOption = 'distance';
+
+            document.getElementById('searchInput').value = '';
+            document.getElementById('radiusSelect').value = '10';
+            document.getElementById('dietarySelect').value = 'ALL';
+            document.getElementById('sortSelect').value = 'distance';
+            setPriceFilter(0);
+        }
+
+        /* ==========================================================================
+           5. DISHES & SPECIALTIES
+           ========================================================================== */
+        function renderDishes() {
+            const container = document.getElementById('dishesGrid');
+            if (!container) return;
+
+            container.innerHTML = REGIONAL_DISHES_SEED.map(item => `
+                <div class="bg-cream-100 rounded-3xl p-6 border-2 border-crimson-900/20 shadow-lg flex flex-col justify-between group">
+                    <div>
+                        <div class="flex items-center justify-between mb-3">
+                            <div class="w-12 h-12 rounded-2xl bg-crimson-900 text-cream-100 flex items-center justify-center text-xl shadow">
+                                <i class="fa-solid ${item.icon}"></i>
+                            </div>
+                            <span class="text-[11px] font-black uppercase px-2.5 py-1 rounded-full bg-amber-200 text-espresso-900">
+                                ${item.priceTier}
+                            </span>
+                        </div>
+                        <h3 class="text-lg font-black font-display uppercase text-espresso-900 group-hover:text-crimson-900 transition">${item.name}</h3>
+                        <p class="text-xs font-bold text-crimson-900 mb-2">${item.tagline}</p>
+                        <p class="text-xs text-espresso-800/80 leading-relaxed mb-4">${item.description}</p>
+                    </div>
+
+                    <button onclick="filterByDishTag('${item.searchKey}')" class="w-full py-2.5 px-4 bg-crimson-900 hover:bg-crimson-800 text-cream-100 text-xs font-black uppercase tracking-wider rounded-xl transition flex items-center justify-center gap-2 shadow">
+                        <span>Find Spots Serving This</span>
+                        <i class="fa-solid fa-arrow-right text-xs"></i>
+                    </button>
+                </div>
+            `).join('');
+        }
+
+        function filterByDishTag(tag) {
+            switchTab('grid');
+            const searchInput = document.getElementById('searchInput');
+            if (searchInput) {
+                searchInput.value = tag;
+                handleSearch(tag);
+            }
+        }
+
+        /* ==========================================================================
+           6. WHEEL OF DINNER RANDOMIZER
+           ========================================================================== */
+        let wheelAngle = 0;
+        let isSpinning = false;
+        const wheelColors = ['#8A151B', '#B91C1C', '#D97706', '#059669', '#2563EB', '#7C3AED', '#DB2777'];
+
+        function drawWheel() {
+            const canvas = document.getElementById('wheelCanvas');
+            if (!canvas) return;
+            const ctx = canvas.getContext('2d');
+            const list = getFilteredRestaurants();
+            const spots = list.length > 0 ? list : appState.computedRestaurants;
+            const numSegments = spots.length;
+            const arcSize = (2 * Math.PI) / numSegments;
+
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            for (let i = 0; i < numSegments; i++) {
+                const angle = i * arcSize;
+                ctx.beginPath();
+                ctx.fillStyle = wheelColors[i % wheelColors.length];
+                ctx.moveTo(160, 160);
+                ctx.arc(160, 160, 155, angle, angle + arcSize);
+                ctx.lineTo(160, 160);
+                ctx.fill();
+
+                // Text
+                ctx.save();
+                ctx.translate(160, 160);
+                ctx.rotate(angle + arcSize / 2);
+                ctx.textAlign = "right";
+                ctx.fillStyle = "#FFFDF7";
+                ctx.font = "bold 11px Inter, sans-serif";
+                
+                let name = spots[i].name;
+                if (name.length > 16) name = name.substring(0, 14) + '...';
+                ctx.fillText(name, 140, 4);
+                ctx.restore();
+            }
+        }
+
+        function spinWheel() {
+            if (isSpinning) return;
+            isSpinning = true;
+
+            const list = getFilteredRestaurants();
+            const spots = list.length > 0 ? list : appState.computedRestaurants;
+            const btn = document.getElementById('spinBtn');
+            btn.disabled = true;
+
+            const canvas = document.getElementById('wheelCanvas');
+            const randomRotation = 1440 + Math.floor(Math.random() * 360);
+            wheelAngle += randomRotation;
+
+            canvas.style.transform = `rotate(${wheelAngle}deg)`;
+
+            setTimeout(() => {
+                isSpinning = false;
+                btn.disabled = false;
+
+                const actualDeg = wheelAngle % 360;
+                const numSegments = spots.length;
+                const degreesPerSegment = 360 / numSegments;
+
+                let pickedIndex = Math.floor((360 - (actualDeg % 360) + 270) % 360 / degreesPerSegment);
+                pickedIndex = (pickedIndex + numSegments) % numSegments;
+
+                const winner = spots[pickedIndex];
+                document.getElementById('wheelPickedName').innerText = winner.name + ` (${winner.distance}km)`;
+            }, 4500);
+        }
+
+        /* ==========================================================================
+           7. BUDGET SPLITTER
+           ========================================================================== */
+        function calculateSplit() {
+            const bill = parseFloat(document.getElementById('splitBill').value) || 0;
+            const people = parseInt(document.getElementById('splitPeople').value) || 1;
+
+            const tipAmount = bill * (appState.tipPercent / 100);
+            const totalBill = bill + tipAmount;
+
+            const subtotalPerPerson = bill / people;
+            const tipPerPerson = tipAmount / people;
+            const totalPerPerson = totalBill / people;
+
+            document.getElementById('subtotalPerPerson').innerText = `₱${subtotalPerPerson.toFixed(2)}`;
+            document.getElementById('tipPerPerson').innerText = `₱${tipPerPerson.toFixed(2)}`;
+            document.getElementById('totalPerPerson').innerText = `₱${totalPerPerson.toFixed(2)}`;
+            document.getElementById('totalGroupBill').innerText = `₱${totalBill.toFixed(2)}`;
+        }
+
+        function adjustPeople(delta) {
+            const input = document.getElementById('splitPeople');
+            let val = parseInt(input.value) || 1;
+            val = Math.max(1, val + delta);
+            input.value = val;
+            calculateSplit();
+        }
+
+        function setTipPercent(percent) {
+            appState.tipPercent = percent;
+            document.querySelectorAll('.tip-btn').forEach(btn => {
+                const tip = parseInt(btn.getAttribute('data-tip'));
+                if (tip === percent) {
+                    btn.className = "tip-btn py-2.5 rounded-xl border-2 border-crimson-900 font-black text-xs bg-crimson-900 text-cream-100";
+                } else {
+                    btn.className = "tip-btn py-2.5 rounded-xl border-2 border-crimson-900/30 font-black text-xs bg-cream-50 text-espresso-900";
+                }
+            });
+            calculateSplit();
+        }
+
+        /* ==========================================================================
+           8. FAVORITES SYSTEM
+           ========================================================================== */
+        function toggleFavorite(id) {
+            if (appState.favorites.includes(id)) {
+                appState.favorites = appState.favorites.filter(fId => fId !== id);
+            } else {
+                appState.favorites.push(id);
+            }
+            localStorage.setItem('wte_retro_favs', JSON.stringify(appState.favorites));
+            renderSpots();
+            renderFavorites();
+            updateFavBadge();
+        }
+
+        function updateFavBadge() {
+            const badge = document.getElementById('favsCountBadge');
+            if (badge) badge.innerText = appState.favorites.length;
+        }
+
+        function renderFavorites() {
+            const container = document.getElementById('favoritesGrid');
+            const emptyState = document.getElementById('noFavoritesState');
+            if (!container) return;
+
+            const favList = appState.computedRestaurants.filter(r => appState.favorites.includes(r.id));
+
+            if (favList.length === 0) {
+                container.innerHTML = '';
+                emptyState.classList.remove('hidden');
+                return;
+            }
+
+            emptyState.classList.add('hidden');
+            container.innerHTML = favList.map(r => `
+                <div class="bg-cream-100 rounded-3xl border-2 border-crimson-900/20 p-5 space-y-3 shadow-lg flex flex-col justify-between">
+                    <div>
+                        <div class="flex items-center justify-between">
+                            <h3 class="font-black font-display uppercase text-base text-espresso-900">${r.name}</h3>
+                            <button onclick="toggleFavorite('${r.id}')" class="text-rose-600 text-sm">
+                                <i class="fa-solid fa-heart"></i>
+                            </button>
+                        </div>
+                        <p class="text-xs text-espresso-800/80 mt-1">${r.address}</p>
+                        <div class="mt-3 flex items-center gap-2 text-xs font-bold">
+                            <span class="px-2.5 py-0.5 rounded bg-amber-200 text-espresso-900">${r.cuisine}</span>
+                            <span class="text-emerald-700 font-black">${"₱".repeat(r.price)}</span>
+                            <span class="text-crimson-900">• ${r.distance}km away</span>
+                        </div>
+                    </div>
+                    <a href="https://maps.google.com/?q=${encodeURIComponent(r.name + ' ' + r.address)}" target="_blank" class="w-full py-2 bg-crimson-900 hover:bg-crimson-800 text-cream-100 text-xs font-black uppercase tracking-wider rounded-xl transition text-center block">
+                        Get Directions
+                    </a>
+                </div>
+            `).join('');
+        }
+
+        /* Init On Page Load */
+        window.addEventListener('DOMContentLoaded', () => {
+            requestUserLocation();
+            calculateSplit();
+            updateFavBadge();
+        });
+    </script>
+</body>
+</html>
